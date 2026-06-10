@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>四象限待办清单</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #1a1a2e;
+      --bg-panel: #16213e;
+      --bg-panel-hover: #1c2a4a;
+      --text-primary: #e0e0e0;
+      --text-secondary: #888;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --nav-width: 72px;
+      --accent: #4fc3f7;
+      --danger: #e74c3c;
+      --radius-card: 10px;
+      --radius-btn: 6px;
+      --transition: 250ms ease;
+      --priority-iu: #E74C3C;
+      --priority-inu: #F39C12;
+      --priority-niu: #3498DB;
+      --priority-ninu: #95A5A6;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      min-width: 1280px;
+      min-height: 720px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg-main);
+    }
+
+    h1, h2, h3, .nav-label, .toolbar-label, .quadrant-label {
+      font-family: "Nunito", sans-serif;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--nav-width);
+      flex-shrink: 0;
+      background: #12122a;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .sidebar-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4fc3f7, #7c4dff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(79, 195, 247, 0.3);
+    }
+
+    .nav-tab {
+      width: 56px;
+      padding: 10px 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: var(--radius-btn);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all var(--transition);
+      font-size: 11px;
+      font-family: "Nunito", sans-serif;
+      font-weight: 600;
+    }
+
+    .nav-tab svg { width: 22px; height: 22px; opacity: 0.7; transition: opacity var(--transition); }
+    .nav-tab:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+    .nav-tab:hover svg { opacity: 1; }
+    .nav-tab.active {
+      background: rgba(79, 195, 247, 0.15);
+      color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(79, 195, 247, 0.3);
+    }
+    .nav-tab.active svg { opacity: 1; stroke: var(--accent); }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .view { display: none; flex: 1; overflow: hidden; }
+    .view.active { display: flex; }
+
+    .placeholder-view {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      color: var(--text-secondary);
+    }
+    .placeholder-view svg { opacity: 0.3; }
+    .placeholder-view h2 { font-family: "Nunito", sans-serif; font-weight: 600; font-size: 20px; color: var(--text-primary); }
+
+    /* ── Todo view layout ── */
+    .todo-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .quadrant-panel {
+      flex: 2;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border-color);
+    }
+
+    .list-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-main);
+      min-width: 360px;
+    }
+
+    /* ── Quadrant grid ── */
+    .quadrant-grid {
+      position: absolute;
+      inset: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+
+    .quadrant {
+      position: relative;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    .quadrant.q-tl { border-radius: var(--radius-card) 0 0 0; background: rgba(231, 76, 60, 0.1); }
+    .quadrant.q-tr { border-radius: 0 var(--radius-card) 0 0; background: rgba(243, 156, 18, 0.1); }
+    .quadrant.q-bl { border-radius: 0 0 0 var(--radius-card); background: rgba(52, 152, 219, 0.1); }
+    .quadrant.q-br { border-radius: 0 0 var(--radius-card) 0; background: rgba(149, 165, 166, 0.1); }
+
+    .quadrant-label {
+      position: absolute;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .q-tl .quadrant-label { top: 10px; left: 12px; color: var(--priority-iu); }
+    .q-tr .quadrant-label { top: 10px; right: 12px; color: var(--priority-inu); }
+    .q-bl .quadrant-label { bottom: 10px; left: 12px; color: var(--priority-niu); }
+    .q-br .quadrant-label { bottom: 10px; right: 12px; color: var(--priority-ninu); }
+
+    /* Axis */
+    .axis-layer {
+      position: absolute;
+      inset: 24px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .axis-h, .axis-v {
+      position: absolute;
+      background: rgba(255,255,255,0.15);
+    }
+    .axis-h { left: 0; right: 0; top: 50%; height: 1px; transform: translateY(-50%); }
+    .axis-v { top: 0; bottom: 0; left: 50%; width: 1px; transform: translateX(-50%); }
+
+    .axis-label {
+      position: absolute;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-family: "Nunito", sans-serif;
+      letter-spacing: 0.5px;
+    }
+    .axis-label.top { top: 4px; left: 50%; transform: translateX(-50%); }
+    .axis-label.bottom { bottom: 4px; left: 50%; transform: translateX(-50%); }
+    .axis-label.left { left: 4px; top: 50%; transform: translateY(-50%); }
+    .axis-label.right { right: 4px; top: 50%; transform: translateY(-50%); }
+
+    /* Circles */
+    .circles-container {
+      position: absolute;
+      inset: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 10px;
+      padding: 8px;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+
+    .todo-circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 250ms ease, box-shadow 250ms ease, opacity 250ms ease;
+      position: relative;
+      z-index: 3;
+      animation: circleIn 300ms ease forwards;
+    }
+
+    @keyframes circleIn {
+      from { opacity: 0; transform: scale(0.5); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .todo-circle.completed {
+      background: transparent !important;
+      border: 2px dashed;
+      opacity: 0.3;
+    }
+    .todo-circle.completed span { opacity: 0.3; }
+
+    .todo-circle.dimmed { opacity: 0.15 !important; }
+    .todo-circle.highlighted {
+      transform: scale(1.1);
+      z-index: 5;
+    }
+
+    .todo-circle.hidden-completed { display: none; }
+
+    /* SVG lines */
+    .connection-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      overflow: visible;
+    }
+
+    /* ── Form ── */
+    .add-form {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-panel);
+      flex-shrink: 0;
+    }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group:last-child { margin-bottom: 0; }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      font-family: "Nunito", sans-serif;
+      font-weight: 600;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-btn);
+      background: var(--bg-main);
+      color: var(--text-primary);
+      font-size: 13px;
+      transition: border-color var(--transition);
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: rgba(79, 195, 247, 0.5); }
+    .form-input.error, .form-select.error { border-color: var(--danger); }
+    .error-msg { font-size: 11px; color: var(--danger); margin-top: 4px; display: none; }
+    .error-msg.show { display: block; }
+
+    .date-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .date-row .form-input { flex: 1; }
+    .date-row .form-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .checkbox-label input { accent-color: var(--accent); }
+
+    /* Contact tags input */
+    .tags-input-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 6px 8px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-btn);
+      background: var(--bg-main);
+      min-height: 36px;
+      align-items: center;
+      position: relative;
+    }
+    .tags-input-wrap:focus-within { border-color: rgba(79, 195, 247, 0.5); }
+
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(255,255,255,0.1);
+      color: var(--text-secondary);
+    }
+    .tag-pill button {
+      background: none; border: none; color: var(--text-secondary);
+      cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px;
+    }
+    .tag-pill button:hover { color: var(--text-primary); }
+
+    .tags-input {
+      border: none; background: transparent; outline: none;
+      color: var(--text-primary); font-size: 13px; flex: 1; min-width: 80px;
+    }
+
+    .autocomplete-list {
+      position: absolute;
+      top: 100%; left: 0; right: 0;
+      background: #1e2d4d;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-btn);
+      max-height: 120px;
+      overflow-y: auto;
+      z-index: 50;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .autocomplete-list.show { display: block; }
+    .autocomplete-item {
+      padding: 8px 12px; cursor: pointer; font-size: 13px;
+      transition: background var(--transition);
+    }
+    .autocomplete-item:hover, .autocomplete-item.active { background: rgba(79,195,247,0.15); }
+
+    /* Priority select with color blocks */
+    .priority-select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .priority-swatch {
+      width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+      background: transparent;
+      transition: background var(--transition);
+    }
+    .priority-select-wrap .form-select { flex: 1; }
+
+    .item-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    .btn-add {
+      width: 100%;
+      padding: 9px;
+      border: none;
+      border-radius: var(--radius-btn);
+      background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+      color: #0d1b2a;
+      font-weight: 700;
+      font-family: "Nunito", sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: opacity var(--transition), transform var(--transition);
+      margin-top: 4px;
+    }
+    .btn-add:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-add:active { transform: translateY(0); }
+
+    /* ── List toolbar ── */
+    .list-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+      gap: 8px;
+      background: var(--bg-panel);
+    }
+
+    .stats-text { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+    .toolbar-controls { display: flex; align-items: center; gap: 10px; }
+
+    .sort-select {
+      padding: 5px 8px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-btn);
+      background: var(--bg-main);
+      color: var(--text-primary);
+      font-size: 11px;
+      outline: none;
+      max-width: 140px;
+    }
+
+    /* Toggle switch */
+    .toggle-wrap {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--text-secondary); white-space: nowrap;
+    }
+    .toggle {
+      position: relative; width: 36px; height: 20px; cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      transition: background var(--transition);
+    }
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform var(--transition);
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    /* ── Todo list ── */
+    .todo-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 12px;
+      position: relative;
+    }
+
+    .todo-list::-webkit-scrollbar { width: 6px; }
+    .todo-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+    .todo-item {
+      background: var(--bg-panel);
+      border-radius: var(--radius-card);
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-color);
+      border-left: 3px solid transparent;
+      transition: all 250ms ease;
+      position: relative;
+      animation: slideIn 300ms ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .todo-item.completed-item { opacity: 0.5; background: rgba(22, 33, 62, 0.5); }
+    .todo-item.dimmed { opacity: 0.15; }
+    .todo-item.highlighted {
+      border-left-color: var(--highlight-color, var(--accent));
+      background: var(--bg-panel-hover);
+      opacity: 1 !important;
+    }
+
+    .todo-item.dragging {
+      opacity: 0.6;
+      transform: scale(1.02);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .drop-indicator {
+      height: 2px;
+      background: var(--accent);
+      border-radius: 1px;
+      margin: -4px 0 4px;
+      pointer-events: none;
+    }
+
+    .item-row-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .item-checkbox {
+      margin-top: 3px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: var(--text-secondary);
+      padding: 2px;
+      flex-shrink: 0;
+      display: none;
+      margin-top: 1px;
+    }
+    .drag-handle.visible { display: block; }
+    .drag-handle:active { cursor: grabbing; }
+
+    .item-desc {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+    }
+    .item-desc.done { text-decoration: line-through; color: var(--text-secondary); }
+
+    .item-contacts-inline {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;
+    }
+
+    .item-row-bottom {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding-left: 36px;
+      font-size: 12px;
+    }
+
+    .item-meta { color: var(--text-secondary); }
+    .item-created { color: #666; font-size: 11px; width: 100%; margin-top: 2px; padding-left: 36px; }
+
+    .priority-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: "Nunito", sans-serif;
+    }
+
+    .item-actions { display: flex; gap: 6px; margin-left: auto; }
+    .btn-sm {
+      padding: 3px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-btn);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .btn-sm:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+    .btn-sm.danger:hover { border-color: var(--danger); color: var(--danger); }
+    .btn-sm.save { border-color: var(--accent); color: var(--accent); }
+
+    /* Edit mode */
+    .edit-form .form-group { margin-bottom: 8px; }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      color: var(--text-secondary);
+      text-align: center;
+      gap: 8px;
+    }
+    .empty-state svg { opacity: 0.25; margin-bottom: 8px; }
+    .empty-state h3 { font-family: "Nunito", sans-serif; color: var(--text-primary); font-size: 16px; }
+    .empty-state p { font-size: 13px; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #c0392b;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: var(--radius-btn);
+      font-size: 13px;
+      z-index: 1000;
+      transition: transform 300ms ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--bg-panel);
+      border-radius: var(--radius-card);
+      padding: 24px;
+      max-width: 360px;
+      width: 90%;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+      border: 1px solid var(--border-color);
+    }
+    .modal h3 { font-family: "Nunito", sans-serif; margin-bottom: 12px; }
+    .modal p { color: var(--text-secondary); margin-bottom: 20px; font-size: 13px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-actions button {
+      padding: 8px 16px;
+      border-radius: var(--radius-btn);
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all var(--transition);
+    }
+    .modal-actions .btn-confirm {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
+    /* Tooltip */
+    [data-tooltip] { position: relative; }
+    [data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 0;
+      background: #2a3a5c;
+      color: var(--text-primary);
+      padding: 6px 10px;
+      border-radius: var(--radius-btn);
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-width: 280px;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+
+    /* Storage warning */
+    .storage-warning {
+      display: none;
+      background: rgba(231, 76, 60, 0.15);
+      border: 1px solid rgba(231, 76, 60, 0.3);
+      color: #e74c3c;
+      padding: 8px 16px;
+      font-size: 12px;
+      text-align: center;
+    }
+    .storage-warning.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-logo" title="四象限待办">✓</div>
+      <button class="nav-tab active" data-view="todo" title="待办事项">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="nav-label">待办事项</span>
+      </button>
+      <button class="nav-tab" data-view="stats" title="统计视图">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        <span class="nav-label">统计视图</span>
+      </button>
+      <button class="nav-tab" data-view="settings" title="设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span class="nav-label">设置</span>
+      </button>
+    </nav>
+
+    <main class="main">
+      <div class="storage-warning" id="storageWarning">⚠ 无法保存数据到本地存储，刷新后数据可能丢失</div>
+
+      <!-- Todo View -->
+      <div class="view active" id="view-todo">
+        <div class="todo-layout" id="todoLayout">
+          <!-- Quadrant Panel -->
+          <div class="quadrant-panel" id="quadrantPanel">
+            <div class="quadrant-grid">
+              <div class="quadrant q-tl" data-priority="important-urgent">
+                <span class="quadrant-label">重要且紧急</span>
+                <div class="circles-container" id="circles-iu"></div>
+              </div>
+              <div class="quadrant q-tr" data-priority="important-not-urgent">
+                <span class="quadrant-label">重要但不紧急</span>
+                <div class="circles-container" id="circles-inu"></div>
+              </div>
+              <div class="quadrant q-bl" data-priority="not-important-urgent">
+                <span class="quadrant-label">不重要但紧急</span>
+                <div class="circles-container" id="circles-niu"></div>
+              </div>
+              <div class="quadrant q-br" data-priority="not-important-not-urgent">
+                <span class="quadrant-label">不重要不紧急</span>
+                <div class="circles-container" id="circles-ninu"></div>
+              </div>
+            </div>
+            <div class="axis-layer">
+              <div class="axis-h"></div>
+              <div class="axis-v"></div>
+              <span class="axis-label top">重要</span>
+              <span class="axis-label bottom">不重要</span>
+              <span class="axis-label left">紧急</span>
+              <span class="axis-label right">不紧急</span>
+            </div>
+          </div>
+
+          <!-- List Panel -->
+          <div class="list-panel">
+            <form class="add-form" id="addForm">
+              <div class="form-group">
+                <label class="form-label">事项描述 <span style="color:var(--danger)">*</span></label>
+                <input type="text" class="form-input" id="addDesc" placeholder="输入事项描述…" maxlength="200">
+                <div class="error-msg" id="addDescError">请输入事项描述</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">截止日期</label>
+                <div class="date-row">
+                  <input type="date" class="form-input" id="addDueDate">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="addNoDueDate"> 无截止日期
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">联系人</label>
+                <div class="tags-input-wrap" id="addContactsWrap">
+                  <div id="addContactTags"></div>
+                  <input type="text" class="tags-input" id="addContactsInput" placeholder="输入后按 Enter 或逗号">
+                  <div class="autocomplete-list" id="addAutocomplete"></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">优先级分类 <span style="color:var(--danger)">*</span></label>
+                <div class="priority-select-wrap">
+                  <span class="priority-swatch" id="addPrioritySwatch"></span>
+                  <select class="form-select" id="addPriority">
+                    <option value="">请选择…</option>
+                    <option value="important-urgent">重要且紧急</option>
+                    <option value="important-not-urgent">重要但不紧急</option>
+                    <option value="not-important-urgent">不重要但紧急</option>
+                    <option value="not-important-not-urgent">不重要不紧急</option>
+                  </select>
+                </div>
+                <div class="error-msg" id="addPriorityError">请选择优先级分类</div>
+              </div>
+              <button type="submit" class="btn-add">添加</button>
+            </form>
+
+            <div class="list-toolbar">
+              <span class="stats-text" id="statsText">共 0 项</span>
+              <div class="toolbar-controls">
+                <select class="sort-select" id="sortSelect">
+                  <option value="date-asc">日期升序</option>
+                  <option value="date-desc">日期降序</option>
+                  <option value="manual">手动</option>
+                  <option value="importance-asc">重要性升序</option>
+                  <option value="importance-desc">重要性降序</option>
+                  <option value="urgency-asc">紧急性升序</option>
+                  <option value="urgency-desc">紧急性降序</option>
+                </select>
+                <label class="toggle-wrap">
+                  <span>显示已完成</span>
+                  <label class="toggle">
+                    <input type="checkbox" id="showCompleted" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </label>
+              </div>
+            </div>
+
+            <div class="todo-list" id="todoList"></div>
+          </div>
+
+          <!-- SVG connection layer -->
+          <svg class="connection-layer" id="connectionSvg"></svg>
+        </div>
+      </div>
+
+      <!-- Stats placeholder -->
+      <div class="view" id="view-stats">
+        <div class="placeholder-view">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          <h2>功能开发中，敬请期待</h2>
+          <p>统计视图即将上线</p>
+        </div>
+      </div>
+
+      <!-- Settings placeholder -->
+      <div class="view" id="view-settings">
+        <div class="placeholder-view">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <h2>功能开发中，敬请期待</h2>
+          <p>设置页面即将上线</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Delete modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+      <h3>确认删除</h3>
+      <p>确定删除该事项？</p>
+      <div class="modal-actions">
+        <button type="button" id="deleteCancel">取消</button>
+        <button type="button" class="btn-confirm" id="deleteConfirm">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Constants ──
+    const STORAGE_KEY = 'todo-quadrant-app';
+    const PRIORITIES = {
+      'important-urgent':          { label: '重要且紧急',     color: '#E74C3C', bgLight: 'rgba(231,76,60,0.2)',  quadrant: 'iu' },
+      'important-not-urgent':      { label: '重要但不紧急',   color: '#F39C12', bgLight: 'rgba(243,156,18,0.2)', quadrant: 'inu' },
+      'not-important-urgent':      { label: '不重要但紧急',   color: '#3498DB', bgLight: 'rgba(52,152,219,0.2)', quadrant: 'niu' },
+      'not-important-not-urgent':  { label: '不重要不紧急',   color: '#95A5A6', bgLight: 'rgba(149,165,166,0.2)', quadrant: 'ninu' }
+    };
+
+    const IMPORTANCE_ORDER = ['not-important-not-urgent', 'not-important-urgent', 'important-not-urgent', 'important-urgent'];
+    const URGENCY_ORDER = ['not-important-not-urgent', 'important-not-urgent', 'not-important-urgent', 'important-urgent'];
+
+    // ── State ──
+    let todos = [];
+    let sortMode = 'date-asc';
+    let showCompleted = true;
+    let editingId = null;
+    let deleteTargetId = null;
+    let highlightedId = null;
+    let addContactTags = [];
+    let storageAvailable = true;
+    let dragState = null;
+    let newlyAddedIds = new Set();
+
+    // ── DOM refs ──
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    // ── UUID ──
+    function generateId() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
+    // ── Storage ──
+    function loadTodos() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          todos = JSON.parse(raw);
+          if (!Array.isArray(todos)) todos = [];
+          todos.forEach((t, i) => {
+            if (t.manualOrder == null) t.manualOrder = i;
+          });
+        }
+        localStorage.setItem('__storage_test__', '1');
+        localStorage.removeItem('__storage_test__');
+      } catch (e) {
+        storageAvailable = false;
+        $('#storageWarning').classList.add('show');
+        todos = [];
+      }
+    }
+
+    function saveTodos() {
+      if (!storageAvailable) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      } catch (e) {
+        storageAvailable = false;
+        $('#storageWarning').classList.add('show');
+        showToast('数据保存失败，请检查浏览器存储设置');
+      }
+    }
+
+    function showToast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── Sequence number (creation order, permanent) ──
+    function getSequenceNumber(id) {
+      const sorted = [...todos].sort((a, b) => a.createdAt - b.createdAt);
+      return sorted.findIndex(t => t.id === id) + 1;
+    }
+
+    // ── Contact autocomplete ──
+    function getAllContacts() {
+      const set = new Set();
+      todos.forEach(t => (t.contacts || []).forEach(c => set.add(c)));
+      return [...set];
+    }
+
+    // ── Format helpers ──
+    function formatDate(dateStr) {
+      return dateStr || '无截止';
+    }
+
+    function formatCreated(ts) {
+      const d = new Date(ts);
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // ── Sorting ──
+    function sortTodos(list) {
+      const arr = [...list];
+      switch (sortMode) {
+        case 'date-asc':
+          return arr.sort((a, b) => {
+            if (!a.dueDate && !b.dueDate) return a.createdAt - b.createdAt;
+            if (!a.dueDate) return 1;
+            if (!b.dueDate) return -1;
+            return a.dueDate.localeCompare(b.dueDate) || a.createdAt - b.createdAt;
+          });
+        case 'date-desc':
+          return arr.sort((a, b) => {
+            if (!a.dueDate && !b.dueDate) return a.createdAt - b.createdAt;
+            if (!a.dueDate) return 1;
+            if (!b.dueDate) return -1;
+            return b.dueDate.localeCompare(a.dueDate) || a.createdAt - b.createdAt;
+          });
+        case 'manual':
+          return arr.sort((a, b) => (a.manualOrder ?? 0) - (b.manualOrder ?? 0));
+        case 'importance-asc':
+          return arr.sort((a, b) => IMPORTANCE_ORDER.indexOf(a.priority) - IMPORTANCE_ORDER.indexOf(b.priority) || a.createdAt - b.createdAt);
+        case 'importance-desc':
+          return arr.sort((a, b) => IMPORTANCE_ORDER.indexOf(b.priority) - IMPORTANCE_ORDER.indexOf(a.priority) || a.createdAt - b.createdAt);
+        case 'urgency-asc':
+          return arr.sort((a, b) => URGENCY_ORDER.indexOf(a.priority) - URGENCY_ORDER.indexOf(b.priority) || a.createdAt - b.createdAt);
+        case 'urgency-desc':
+          return arr.sort((a, b) => URGENCY_ORDER.indexOf(b.priority) - URGENCY_ORDER.indexOf(a.priority) || a.createdAt - b.createdAt);
+        default:
+          return arr;
+      }
+    }
+
+    function getVisibleTodos() {
+      let list = sortTodos(todos);
+      if (!showCompleted) list = list.filter(t => !t.completed);
+      return list;
+    }
+
+    // ── Navigation ──
+    function initNav() {
+      $$('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          $$('.nav-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          $$('.view').forEach(v => v.classList.remove('active'));
+          $(`#view-${tab.dataset.view}`).classList.add('active');
+          if (tab.dataset.view === 'todo') requestAnimationFrame(drawConnections);
+        });
+      });
+    }
+
+    // ── Add form ──
+    function initAddForm() {
+      const noDue = $('#addNoDueDate');
+      const dueInput = $('#addDueDate');
+
+      noDue.addEventListener('change', () => {
+        dueInput.disabled = noDue.checked;
+        if (noDue.checked) dueInput.value = '';
+      });
+
+      $('#addContactsInput').addEventListener('keydown', handleContactKeydown);
+      $('#addContactsInput').addEventListener('input', handleContactAutocomplete);
+      $('#addContactsInput').addEventListener('blur', () => setTimeout(() => $('#addAutocomplete').classList.remove('show'), 150));
+
+      $('#addForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        addTodo();
+      });
+
+      $('#addDesc').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addTodo(); }
+      });
+
+      $('#addPriority').addEventListener('change', updatePrioritySwatch);
+      updatePrioritySwatch();
+    }
+
+    function updatePrioritySwatch() {
+      const val = $('#addPriority').value;
+      const swatch = $('#addPrioritySwatch');
+      swatch.style.background = val ? PRIORITIES[val].color : 'transparent';
+    }
+
+    function handleContactKeydown(e, tags, inputEl, tagsContainer, autocompleteEl) {
+      const input = inputEl || $('#addContactsInput');
+      const container = tagsContainer || $('#addContactTags');
+      const ac = autocompleteEl || $('#addAutocomplete');
+      const tagList = tags || addContactTags;
+
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = input.value.replace(/,/g, '').trim();
+        if (val && !tagList.includes(val)) {
+          tagList.push(val);
+          renderContactTags(tagList, container, input);
+        }
+        input.value = '';
+        ac.classList.remove('show');
+      } else if (e.key === 'Backspace' && !input.value && tagList.length) {
+        tagList.pop();
+        renderContactTags(tagList, container, input);
+      }
+    }
+
+    function handleContactAutocomplete(e, tags, autocompleteEl) {
+      const ac = autocompleteEl || $('#addAutocomplete');
+      const tagList = tags || addContactTags;
+      const val = e.target.value.trim().toLowerCase();
+      const all = getAllContacts().filter(c => !tagList.includes(c) && c.toLowerCase().includes(val));
+      if (!val || !all.length) { ac.classList.remove('show'); return; }
+      ac.innerHTML = all.map(c => `<div class="autocomplete-item" data-val="${escapeAttr(c)}">${escapeHtml(c)}</div>`).join('');
+      ac.classList.add('show');
+      ac.querySelectorAll('.autocomplete-item').forEach(item => {
+        item.addEventListener('mousedown', (ev) => {
+          ev.preventDefault();
+          const v = item.dataset.val;
+          if (!tagList.includes(v)) tagList.push(v);
+          e.target.value = '';
+          renderContactTags(tagList, $('#addContactTags'), e.target);
+          ac.classList.remove('show');
+        });
+      });
+    }
+
+    function renderContactTags(tags, container, inputEl) {
+      container.innerHTML = tags.map((t, i) =>
+        `<span class="tag-pill">${escapeHtml(t)}<button type="button" data-idx="${i}">&times;</button></span>`
+      ).join('');
+      container.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          tags.splice(+btn.dataset.idx, 1);
+          renderContactTags(tags, container, inputEl);
+        });
+      });
+    }
+
+    function resetAddForm() {
+      $('#addDesc').value = '';
+      $('#addDueDate').value = '';
+      $('#addNoDueDate').checked = false;
+      $('#addDueDate').disabled = false;
+      addContactTags = [];
+      $('#addContactTags').innerHTML = '';
+      $('#addContactsInput').value = '';
+      $('#addPriority').value = '';
+      updatePrioritySwatch();
+      $('#addDesc').classList.remove('error');
+      $('#addPriority').classList.remove('error');
+      $('#addDescError').classList.remove('show');
+      $('#addPriorityError').classList.remove('show');
+    }
+
+    function addTodo() {
+      const desc = $('#addDesc').value.trim();
+      const priority = $('#addPriority').value;
+      let valid = true;
+
+      if (!desc) {
+        $('#addDesc').classList.add('error');
+        $('#addDescError').classList.add('show');
+        valid = false;
+      } else {
+        $('#addDesc').classList.remove('error');
+        $('#addDescError').classList.remove('show');
+      }
+
+      if (!priority) {
+        $('#addPriority').classList.add('error');
+        $('#addPriorityError').classList.add('show');
+        valid = false;
+      } else {
+        $('#addPriority').classList.remove('error');
+        $('#addPriorityError').classList.remove('show');
+      }
+
+      if (!valid) return;
+
+      const maxOrder = todos.reduce((m, t) => Math.max(m, t.manualOrder ?? 0), -1);
+      const todo = {
+        id: generateId(),
+        description: desc,
+        dueDate: $('#addNoDueDate').checked ? null : ($('#addDueDate').value || null),
+        contacts: [...addContactTags],
+        priority,
+        completed: false,
+        createdAt: Date.now(),
+        manualOrder: maxOrder + 1
+      };
+
+      todos.push(todo);
+      newlyAddedIds.add(todo.id);
+      saveTodos();
+      resetAddForm();
+      render();
+      setTimeout(() => newlyAddedIds.delete(todo.id), 350);
+    }
+
+    // ── Render circles ──
+    function renderCircles() {
+      Object.values(PRIORITIES).forEach(p => {
+        $(`#circles-${p.quadrant}`).innerHTML = '';
+      });
+
+      todos.forEach(todo => {
+        const p = PRIORITIES[todo.priority];
+        if (!p) return;
+
+        const hideCompleted = todo.completed && !showCompleted;
+        const seq = getSequenceNumber(todo.id);
+
+        const circle = document.createElement('div');
+        circle.className = 'todo-circle' + (newlyAddedIds.has(todo.id) ? '' : ' no-animate');
+        circle.dataset.id = todo.id;
+        circle.style.background = p.color;
+        if (!newlyAddedIds.has(todo.id)) circle.style.animation = 'none';
+        if (todo.completed) {
+          circle.classList.add('completed');
+          circle.style.borderColor = p.color;
+          if (hideCompleted) circle.classList.add('hidden-completed');
+        }
+        if (highlightedId && highlightedId !== todo.id) circle.classList.add('dimmed');
+        if (highlightedId === todo.id) {
+          circle.classList.add('highlighted');
+          circle.style.boxShadow = `0 0 12px ${p.color}, 0 0 24px ${p.color}66`;
+        }
+
+        circle.innerHTML = `<span>${seq}</span>`;
+
+        circle.addEventListener('mouseenter', () => setHighlight(todo.id));
+        circle.addEventListener('mouseleave', () => setHighlight(null));
+
+        $(`#circles-${p.quadrant}`).appendChild(circle);
+      });
+    }
+
+    // ── Render list ──
+    function renderList() {
+      const list = $('#todoList');
+      const visible = getVisibleTodos();
+
+      // Stats
+      const total = todos.length;
+      const done = todos.filter(t => t.completed).length;
+      $('#statsText').textContent = `共 ${total} 项 · ${done} 项已完成`;
+
+      if (!visible.length) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+            </svg>
+            <h3>还没有待办事项</h3>
+            <p>在上方添加你的第一个任务吧</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = '';
+      const isManual = sortMode === 'manual';
+
+      visible.forEach(todo => {
+        const p = PRIORITIES[todo.priority];
+        const isEditing = editingId === todo.id;
+
+        const item = document.createElement('div');
+        item.className = 'todo-item';
+        item.dataset.id = todo.id;
+        if (todo.completed) item.classList.add('completed-item');
+        if (highlightedId && highlightedId !== todo.id) item.classList.add('dimmed');
+        if (highlightedId === todo.id) {
+          item.classList.add('highlighted');
+          item.style.setProperty('--highlight-color', p.color);
+        }
+
+        if (isEditing) {
+          item.innerHTML = buildEditForm(todo);
+          bindEditForm(item, todo);
+        } else {
+          const contactsHtml = (todo.contacts || []).map(c =>
+            `<span class="tag-pill">${escapeHtml(c)}</span>`
+          ).join('');
+
+          item.innerHTML = `
+            <div class="item-row-top">
+              <span class="drag-handle ${isManual ? 'visible' : ''}" title="拖拽排序">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+              </span>
+              <span class="item-dot" style="background:${p.color}"></span>
+              <input type="checkbox" class="item-checkbox" ${todo.completed ? 'checked' : ''}>
+              <div style="flex:1">
+                <div class="item-desc ${todo.completed ? 'done' : ''}" ${todo.description.length > 40 ? `data-tooltip="${escapeAttr(todo.description)}"` : ''}>${escapeHtml(todo.description)}</div>
+                ${contactsHtml ? `<div class="item-contacts-inline">${contactsHtml}</div>` : ''}
+              </div>
+            </div>
+            <div class="item-row-bottom">
+              <span class="item-meta">截止: ${formatDate(todo.dueDate)}</span>
+              <span class="priority-pill" style="background:${p.bgLight};color:${p.color}">${p.label}</span>
+              <div class="item-actions">
+                <button class="btn-sm edit-btn">编辑</button>
+                <button class="btn-sm danger delete-btn">删除</button>
+              </div>
+            </div>
+            <div class="item-created">创建: ${formatCreated(todo.createdAt)}</div>
+          `;
+
+          item.querySelector('.item-checkbox').addEventListener('change', (e) => {
+            todo.completed = e.target.checked;
+            saveTodos();
+            render();
+          });
+
+          item.querySelector('.edit-btn').addEventListener('click', () => {
+            editingId = todo.id;
+            renderList();
+          });
+
+          item.querySelector('.delete-btn').addEventListener('click', () => {
+            deleteTargetId = todo.id;
+            $('#deleteModal').classList.add('show');
+          });
+
+          if (isManual) initDragItem(item, todo);
+
+          item.addEventListener('mouseenter', () => setHighlight(todo.id));
+          item.addEventListener('mouseleave', () => setHighlight(null));
+        }
+
+        list.appendChild(item);
+      });
+    }
+
+    function buildEditForm(todo) {
+      const p = PRIORITIES[todo.priority];
+      const contactsTags = [...(todo.contacts || [])];
+      return `
+        <div class="edit-form" data-id="${todo.id}">
+          <div class="form-group">
+            <input type="text" class="form-input edit-desc" value="${escapeAttr(todo.description)}" maxlength="200">
+          </div>
+          <div class="form-group">
+            <div class="date-row">
+              <input type="date" class="form-input edit-due" value="${todo.dueDate || ''}" ${!todo.dueDate ? 'disabled' : ''}>
+              <label class="checkbox-label">
+                <input type="checkbox" class="edit-no-due" ${!todo.dueDate ? 'checked' : ''}> 无截止日期
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="tags-input-wrap edit-contacts-wrap">
+              <div class="edit-contact-tags"></div>
+              <input type="text" class="tags-input edit-contacts-input" placeholder="联系人">
+              <div class="autocomplete-list edit-autocomplete"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <select class="form-select edit-priority">
+              ${Object.entries(PRIORITIES).map(([k, v]) =>
+                `<option value="${k}" ${k === todo.priority ? 'selected' : ''}>${v.label}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="item-actions" style="padding-left:0;margin-top:8px">
+            <button class="btn-sm save save-edit">保存</button>
+            <button class="btn-sm cancel-edit">取消</button>
+          </div>
+        </div>`;
+    }
+
+    function bindEditForm(item, todo) {
+      const wrap = item.querySelector('.edit-contacts-wrap');
+      const tagsContainer = item.querySelector('.edit-contact-tags');
+      const input = item.querySelector('.edit-contacts-input');
+      const ac = item.querySelector('.edit-autocomplete');
+      let editTags = [...(todo.contacts || [])];
+      renderContactTags(editTags, tagsContainer, input);
+
+      const noDue = item.querySelector('.edit-no-due');
+      const dueInput = item.querySelector('.edit-due');
+      noDue.addEventListener('change', () => {
+        dueInput.disabled = noDue.checked;
+        if (noDue.checked) dueInput.value = '';
+      });
+
+      input.addEventListener('keydown', (e) => handleContactKeydown(e, editTags, input, tagsContainer, ac));
+      input.addEventListener('input', (e) => handleContactAutocomplete(e, editTags, ac));
+
+      item.querySelector('.save-edit').addEventListener('click', () => {
+        const desc = item.querySelector('.edit-desc').value.trim();
+        if (!desc) { showToast('事项描述不能为空'); return; }
+        todo.description = desc;
+        todo.dueDate = noDue.checked ? null : (dueInput.value || null);
+        todo.contacts = [...editTags];
+        todo.priority = item.querySelector('.edit-priority').value;
+        editingId = null;
+        saveTodos();
+        render();
+      });
+
+      item.querySelector('.cancel-edit').addEventListener('click', () => {
+        editingId = null;
+        renderList();
+      });
+    }
+
+    // ── Highlight ──
+    function setHighlight(id) {
+      if (highlightedId === id) return;
+      highlightedId = id;
+
+      document.querySelectorAll('.todo-circle').forEach(el => {
+        const tid = el.dataset.id;
+        const p = PRIORITIES[todos.find(t => t.id === tid)?.priority];
+        el.classList.toggle('dimmed', !!id && tid !== id);
+        el.classList.toggle('highlighted', tid === id);
+        if (tid === id && p) {
+          el.style.boxShadow = `0 0 12px ${p.color}, 0 0 24px ${p.color}66`;
+        } else {
+          el.style.boxShadow = '';
+        }
+      });
+
+      document.querySelectorAll('.todo-item').forEach(el => {
+        const tid = el.dataset.id;
+        const p = PRIORITIES[todos.find(t => t.id === tid)?.priority];
+        el.classList.toggle('dimmed', !!id && tid !== id);
+        el.classList.toggle('highlighted', tid === id);
+        if (tid === id && p) el.style.setProperty('--highlight-color', p.color);
+      });
+
+      drawConnections();
+    }
+
+    // ── SVG Connections ──
+    function drawConnections() {
+      const svg = $('#connectionSvg');
+      const layout = $('#todoLayout');
+      const layoutRect = layout.getBoundingClientRect();
+
+      svg.setAttribute('width', layoutRect.width);
+      svg.setAttribute('height', layoutRect.height);
+      svg.innerHTML = '';
+
+      const paths = [];
+
+      todos.forEach(todo => {
+        if (todo.completed) return;
+
+        const circle = document.querySelector(`.todo-circle[data-id="${todo.id}"]`);
+        const listItem = document.querySelector(`.todo-item[data-id="${todo.id}"]`);
+        if (!circle || !listItem) return;
+
+        const cRect = circle.getBoundingClientRect();
+        const iRect = listItem.getBoundingClientRect();
+
+        const p = PRIORITIES[todo.priority];
+        const cx = cRect.left + cRect.width / 2 - layoutRect.left;
+        const cy = cRect.top + cRect.height / 2 - layoutRect.top;
+        const ex = iRect.left - layoutRect.left;
+        const ey = iRect.top + iRect.height / 2 - layoutRect.top;
+
+        // Start from right edge of circle, end at left edge of item
+        const r = 11;
+        const startX = cx + r;
+        const startY = cy;
+        const endX = ex;
+        const endY = ey;
+
+        const cpOffset = Math.abs(endX - startX) * 0.45;
+        const d = `M ${startX} ${startY} C ${startX + cpOffset} ${startY}, ${endX - cpOffset} ${endY}, ${endX} ${endY}`;
+
+        const isHighlighted = highlightedId === todo.id;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', p.color);
+        path.setAttribute('stroke-width', isHighlighted ? '2.5' : '1');
+        path.setAttribute('opacity', highlightedId ? (isHighlighted ? '1' : '0.15') : '0.25');
+        path.dataset.id = todo.id;
+
+        paths.push({ path, highlighted: isHighlighted });
+      });
+
+      // Draw non-highlighted first, highlighted on top
+      paths.sort((a, b) => a.highlighted - b.highlighted);
+      paths.forEach(({ path }) => svg.appendChild(path));
+    }
+
+    // ── Drag and Drop (manual sort) ──
+    function initDragItem(item, todo) {
+      const handle = item.querySelector('.drag-handle');
+      if (!handle) return;
+
+      handle.addEventListener('mousedown', () => { item.draggable = true; });
+      handle.addEventListener('mouseup', () => { item.draggable = false; });
+
+      item.addEventListener('dragstart', (e) => {
+        dragState = { id: todo.id, el: item };
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', todo.id);
+      });
+
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+        item.draggable = false;
+        $$('.drop-indicator').forEach(el => el.remove());
+        dragState = null;
+      });
+
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (!dragState || dragState.id === todo.id) return;
+
+        $$('.drop-indicator').forEach(el => el.remove());
+        const rect = item.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        const indicator = document.createElement('div');
+        indicator.className = 'drop-indicator';
+        if (e.clientY < mid) {
+          item.parentNode.insertBefore(indicator, item);
+        } else {
+          item.parentNode.insertBefore(indicator, item.nextSibling);
+        }
+      });
+
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!dragState) return;
+
+        const fromId = dragState.id;
+        const toId = todo.id;
+        if (fromId === toId) return;
+
+        const fromTodo = todos.find(t => t.id === fromId);
+        const visible = getVisibleTodos();
+        const fromIdx = visible.findIndex(t => t.id === fromId);
+        const toIdx = visible.findIndex(t => t.id === toId);
+
+        const indicators = $$('.drop-indicator');
+        const insertBefore = indicators.length > 0 && indicators[0].nextSibling === item;
+
+        // Reorder manualOrder values
+        const allVisible = sortTodos(todos.filter(t => showCompleted || !t.completed));
+        const ids = allVisible.map(t => t.id);
+        const fi = ids.indexOf(fromId);
+        ids.splice(fi, 1);
+        let ti = ids.indexOf(toId);
+        if (!insertBefore) ti++;
+        ids.splice(ti, 0, fromId);
+
+        ids.forEach((id, i) => {
+          const t = todos.find(x => x.id === id);
+          if (t) t.manualOrder = i;
+        });
+
+        saveTodos();
+        $$('.drop-indicator').forEach(el => el.remove());
+        render();
+      });
+    }
+
+    // ── Delete modal ──
+    function initDeleteModal() {
+      $('#deleteCancel').addEventListener('click', () => {
+        deleteTargetId = null;
+        $('#deleteModal').classList.remove('show');
+      });
+      $('#deleteConfirm').addEventListener('click', () => {
+        if (deleteTargetId) {
+          todos = todos.filter(t => t.id !== deleteTargetId);
+          if (editingId === deleteTargetId) editingId = null;
+          saveTodos();
+          render();
+        }
+        deleteTargetId = null;
+        $('#deleteModal').classList.remove('show');
+      });
+    }
+
+    // ── Toolbar ──
+    function initToolbar() {
+      $('#sortSelect').addEventListener('change', (e) => {
+        sortMode = e.target.value;
+        render();
+      });
+
+      $('#showCompleted').addEventListener('change', (e) => {
+        showCompleted = e.target.checked;
+        render();
+      });
+    }
+
+    // ── Keyboard ──
+    function initKeyboard() {
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && editingId) {
+          editingId = null;
+          renderList();
+        }
+      });
+    }
+
+    // ── Resize / scroll ──
+    function initResizeScroll() {
+      let rafId = null;
+      const scheduleRedraw = () => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => { drawConnections(); rafId = null; });
+      };
+
+      window.addEventListener('resize', scheduleRedraw);
+      $('#todoList').addEventListener('scroll', scheduleRedraw);
+    }
+
+    // ── Escape HTML ──
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── Main render ──
+    function render() {
+      renderCircles();
+      renderList();
+      requestAnimationFrame(drawConnections);
+    }
+
+    // ── Init ──
+    function init() {
+      loadTodos();
+      initNav();
+      initAddForm();
+      initToolbar();
+      initDeleteModal();
+      initKeyboard();
+      initResizeScroll();
+      render();
+    }
+
+    init();
+  </script>
+</body>
+</html>
