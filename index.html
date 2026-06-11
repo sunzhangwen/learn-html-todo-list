@@ -25,6 +25,8 @@
       --priority-inu: #F39C12;
       --priority-niu: #3498DB;
       --priority-ninu: #95A5A6;
+      --circle-size: 50px;
+      --circle-edge-inset: 100px;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -175,11 +177,11 @@
 
     .quadrant-label {
       position: absolute;
-      font-size: 12px;
+      font-size: 18px;
       font-weight: 600;
       opacity: 0.55;
       pointer-events: none;
-      z-index: 1;
+      z-index: 10;
     }
     .q-tl .quadrant-label { top: 10px; left: 12px; color: var(--priority-iu); }
     .q-tr .quadrant-label { top: 10px; right: 12px; color: var(--priority-inu); }
@@ -202,7 +204,7 @@
 
     .axis-label {
       position: absolute;
-      font-size: 11px;
+      font-size: 16.5px;
       font-weight: 600;
       color: var(--text-secondary);
       font-family: "Nunito", sans-serif;
@@ -213,27 +215,49 @@
     .axis-label.left { left: 4px; top: 50%; transform: translateY(-50%); }
     .axis-label.right { right: 4px; top: 50%; transform: translateY(-50%); }
 
-    /* Circles */
+    /* Circles — inset from quadrant edges to avoid overlapping labels */
     .circles-container {
       position: absolute;
-      inset: 8px;
       display: flex;
       flex-wrap: wrap;
       align-content: flex-start;
-      gap: 10px;
-      padding: 8px;
+      gap: 14px;
       align-items: flex-start;
       justify-content: flex-start;
     }
+    .q-tl .circles-container {
+      top: var(--circle-edge-inset);
+      left: var(--circle-edge-inset);
+      right: 16px;
+      bottom: 16px;
+    }
+    .q-tr .circles-container {
+      top: var(--circle-edge-inset);
+      right: var(--circle-edge-inset);
+      left: 16px;
+      bottom: 16px;
+    }
+    .q-bl .circles-container {
+      bottom: var(--circle-edge-inset);
+      left: var(--circle-edge-inset);
+      right: 16px;
+      top: 16px;
+    }
+    .q-br .circles-container {
+      bottom: var(--circle-edge-inset);
+      right: var(--circle-edge-inset);
+      left: 16px;
+      top: 16px;
+    }
 
     .todo-circle {
-      width: 22px;
-      height: 22px;
+      width: var(--circle-size);
+      height: var(--circle-size);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 16px;
       font-weight: 700;
       color: #fff;
       cursor: pointer;
@@ -286,7 +310,7 @@
 
     .form-label {
       display: block;
-      font-size: 12px;
+      font-size: 18px;
       color: var(--text-secondary);
       margin-bottom: 5px;
       font-family: "Nunito", sans-serif;
@@ -321,7 +345,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
+      font-size: 18px;
       color: var(--text-secondary);
       cursor: pointer;
       white-space: nowrap;
@@ -347,15 +371,15 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 2px 8px;
+      padding: 3px 10px;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 16.5px;
       background: rgba(255,255,255,0.1);
       color: var(--text-secondary);
     }
     .tag-pill button {
       background: none; border: none; color: var(--text-secondary);
-      cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px;
+      cursor: pointer; font-size: 21px; line-height: 1; padding: 0 2px;
     }
     .tag-pill button:hover { color: var(--text-primary); }
 
@@ -433,7 +457,7 @@
       background: var(--bg-panel);
     }
 
-    .stats-text { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+    .stats-text { font-size: 18px; color: var(--text-secondary); white-space: nowrap; }
     .toolbar-controls { display: flex; align-items: center; gap: 10px; }
 
     .sort-select {
@@ -442,15 +466,15 @@
       border-radius: var(--radius-btn);
       background: var(--bg-main);
       color: var(--text-primary);
-      font-size: 11px;
+      font-size: 16.5px;
       outline: none;
-      max-width: 140px;
+      max-width: 180px;
     }
 
     /* Toggle switch */
     .toggle-wrap {
       display: flex; align-items: center; gap: 6px;
-      font-size: 11px; color: var(--text-secondary); white-space: nowrap;
+      font-size: 16.5px; color: var(--text-secondary); white-space: nowrap;
     }
     .toggle {
       position: relative; width: 36px; height: 20px; cursor: pointer;
@@ -571,7 +595,7 @@
       align-items: center;
       gap: 8px;
       padding-left: 36px;
-      font-size: 12px;
+      font-size: 18px;
     }
 
     .item-meta { color: var(--text-secondary); }
@@ -579,9 +603,9 @@
 
     .priority-pill {
       display: inline-block;
-      padding: 2px 8px;
+      padding: 3px 10px;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 16.5px;
       font-weight: 600;
       font-family: "Nunito", sans-serif;
     }
@@ -1429,7 +1453,7 @@
         const ey = iRect.top + iRect.height / 2 - layoutRect.top;
 
         // Start from right edge of circle, end at left edge of item
-        const r = 11;
+        const r = cRect.width / 2;
         const startX = cx + r;
         const startY = cy;
         const endX = ex;
